@@ -1,5 +1,6 @@
 import 'package:build/build.dart';
-import 'package:web3dart_builders/generator.dart';
+
+import 'generator.dart';
 
 Builder abiGenerator(BuilderOptions options) => const ContractGenerator();
 

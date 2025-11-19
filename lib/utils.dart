@@ -1,7 +1,7 @@
 import 'package:code_builder/code_builder.dart' hide FunctionType;
-import 'package:web3dart/web3dart.dart';
+import 'package:web3dart_async/web3dart_async.dart';
 
-const web3package = 'package:web3dart/web3dart.dart';
+const web3package = 'package:web3dart_async/web3dart_async.dart';
 const walletPackage = 'package:wallet/wallet.dart';
 
 TypeReference referType(String name, [String? uri]) {

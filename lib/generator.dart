@@ -6,7 +6,7 @@ import 'package:built_collection/built_collection.dart';
 import 'package:code_builder/code_builder.dart';
 import 'package:dart_style/dart_style.dart';
 import 'package:path/path.dart';
-import 'package:web3dart/web3dart.dart';
+import 'package:web3dart_async/web3dart_async.dart';
 
 import 'documentation.dart';
 import 'utils.dart';
@@ -22,7 +22,8 @@ class ContractGenerator implements Builder {
   @override
   Future<void> build(BuildStep buildStep) async {
     final inputId = buildStep.inputId;
-    final withoutExtension = inputId.path.substring(0, inputId.path.length - '.abi.json'.length);
+    final withoutExtension =
+        inputId.path.substring(0, inputId.path.length - '.abi.json'.length);
 
     final source = json.decode(await buildStep.readAsString(inputId));
     Documentation? documentation;
@@ -43,7 +44,8 @@ class ContractGenerator implements Builder {
     }
 
     final outputId = AssetId(inputId.package, '$withoutExtension.g.dart');
-    await buildStep.writeAsString(outputId, _generateForAbi(abi, abiCode, documentation));
+    await buildStep.writeAsString(
+        outputId, _generateForAbi(abi, abiCode, documentation));
   }
 
   String _suggestName(String pathWithoutExtension) {
@@ -56,7 +58,8 @@ class ContractGenerator implements Builder {
     final generation = _ContractGeneration(abi, abiCode, docs);
     final library = generation.generate();
 
-    final emitter = DartEmitter(allocator: Allocator.simplePrefixing(), useNullSafetySyntax: true);
+    final emitter = DartEmitter(
+        allocator: Allocator.simplePrefixing(), useNullSafetySyntax: true);
     final source = '''
 // @dart=3.0
 // coverage:ignore-file
@@ -66,12 +69,13 @@ class ContractGenerator implements Builder {
 ${library.accept(emitter)}''';
 
     try {
-      return DartFormatter().format(source);
+      return DartFormatter(languageVersion: DartFormatter.latestLanguageVersion)
+          .format(source);
     } on Object {
       // The source couldn't be parsed. Emit it anyways to make debugging the
       // generator easier, but this is likely our fault.
       log.severe('Could not format generated source. This is likely a bug in '
-          'web3dart');
+          'web3dart_async');
       return source;
     }
   }
@@ -100,7 +104,8 @@ class _ContractGeneration {
   String _nameOfResultClass(ContractFunction function) {
     final functionName = function.name.omitUnderscore();
     final name = '${functionName[0].toUpperCase()}${functionName.substring(1)}';
-    final number = _usedResultClassNames[name] = (_usedResultClassNames[name] ?? 0) + 1;
+    final number =
+        _usedResultClassNames[name] = (_usedResultClassNames[name] ?? 0) + 1;
     if (number == 1) {
       return name;
     } else {
@@ -109,7 +114,8 @@ class _ContractGeneration {
   }
 
   String _nameOfFunction(ContractFunction function) {
-    final number = _usedFunctionNames[function.name] = (_usedFunctionNames[function.name] ?? 0) + 1;
+    final number = _usedFunctionNames[function.name] =
+        (_usedFunctionNames[function.name] ?? 0) + 1;
 
     if (number == 1) {
       return function.name;
@@ -119,7 +125,8 @@ class _ContractGeneration {
   }
 
   String _nameOfEvent(ContractEvent event) {
-    final number = _usedEventNames[event.name] = (_usedEventNames[event.name] ?? 0) + 1;
+    final number =
+        _usedEventNames[event.name] = (_usedEventNames[event.name] ?? 0) + 1;
 
     if (number == 1) {
       return event.name;
@@ -163,7 +170,9 @@ class _ContractGeneration {
       }
     }
 
-    b.methods.addAll([for (final event in _abi.events) Method((b) => _methodForEvent(event, b))]);
+    b.methods.addAll([
+      for (final event in _abi.events) Method((b) => _methodForEvent(event, b))
+    ]);
 
     final details = documentation?.forContract();
     if (details != null) b.docs.add(details);
@@ -203,7 +212,9 @@ class _ContractGeneration {
       ..modifier = MethodModifier.async
       ..returns = _returnType(fun)
       ..name = _nameOfFunction(fun)
-      ..body = fun.isConstant ? _bodyForImmutable(fun, index) : _bodyForMutable(fun, index)
+      ..body = fun.isConstant
+          ? _bodyForImmutable(fun, index)
+          : _bodyForMutable(fun, index)
       ..requiredParameters.addAll(_parametersFor(fun));
 
     if (!fun.isConstant) {
@@ -256,7 +267,8 @@ class _ContractGeneration {
             (b) => b
               ..namedFieldTypes.addAll(
                 {
-                  for (final param in function.parameters) _nameOfParameter(param): param.type.toDart(),
+                  for (final param in function.parameters)
+                    _nameOfParameter(param): param.type.toDart(),
                 },
               ),
           ))
@@ -264,14 +276,18 @@ class _ContractGeneration {
   }
 
   Code _bodyForImmutable(ContractFunction function, int index) {
-    final params = function.parameters.map((e) => refer('args.${_nameOfParameter(e)}')).toList();
+    final params = function.parameters
+        .map((e) => refer('args.${_nameOfParameter(e)}'))
+        .toList();
 
     final outputs = function.outputs;
     Expression? returnValue;
     if (outputs.length > 1) {
       returnValue = _resultClassFor(function).newInstance([refer('response')]);
     } else if (outputs.length == 1) {
-      returnValue = refer('response').index(literalNum(0)).castTo(function.outputs.single.type);
+      returnValue = refer('response')
+          .index(literalNum(0))
+          .castTo(function.outputs.single.type);
     }
 
     return Block((b) {
@@ -279,7 +295,8 @@ class _ContractGeneration {
 
       b
         ..addExpression(declareFinal('params').assign(literalList(params)))
-        ..addExpression(declareFinal('response').assign(refer('read').call([argFunction, argParams, refer('atBlock')]).awaited));
+        ..addExpression(declareFinal('response').assign(refer('read')
+            .call([argFunction, argParams, refer('atBlock')]).awaited));
       if (returnValue != null) {
         b.addExpression(returnValue.returned);
       }
@@ -287,7 +304,9 @@ class _ContractGeneration {
   }
 
   Code _bodyForMutable(ContractFunction function, int index) {
-    final params = function.parameters.map((e) => refer('args.${_nameOfParameter(e)}')).toList();
+    final params = function.parameters
+        .map((e) => refer('args.${_nameOfParameter(e)}'))
+        .toList();
     final funWrite = refer('write').call([
       argCredentials,
       refer('transaction'),
@@ -308,11 +327,13 @@ class _ContractGeneration {
   /// with multiple return values.
   Reference _resultClassFor(ContractFunction function) {
     return _functionToResultClass.putIfAbsent(function, () {
-      return _generateResultClass(function.outputs, _nameOfResultClass(function));
+      return _generateResultClass(
+          function.outputs, _nameOfResultClass(function));
     });
   }
 
-  Reference _generateResultClass(List<FunctionParameter> params, String name, {String? docs, bool event = false}) {
+  Reference _generateResultClass(List<FunctionParameter> params, String name,
+      {String? docs, bool event = false}) {
     final fields = <Field>[];
     final initializers = <Code>[];
     for (var i = 0; i < params.length; i++) {
@@ -327,7 +348,8 @@ class _ContractGeneration {
         ..type = type
         ..modifier = FieldModifier.final$));
 
-      initializers.add(refer(name).assign(refer('response[$i]').castTo(solidityType)).code);
+      initializers.add(
+          refer(name).assign(refer('response[$i]').castTo(solidityType)).code);
     }
     if (event) {
       fields.add(Field((b) => b
@@ -404,14 +426,21 @@ class _ContractGeneration {
           'fromBlock': refer('fromBlock'),
           'toBlock': refer('toBlock'),
         })))
-        ..addExpression(client.property('events').call([refer('filter')]).property('map').call([mapper.closure]).returned));
+        ..addExpression(client
+            .property('events')
+            .call([refer('filter')])
+            .property('map')
+            .call([mapper.closure])
+            .returned));
   }
 
   /// Declares a variable named `function` initialized to the [function].
   /// We use an index instead of looking up the name to support overloaded
   /// functions.
-  void _assignFunction(ListBuilder<Code> statements, ContractFunction function, int index) {
-    final functionExpr = self.property('abi').property('functions').index(literalNum(index));
+  void _assignFunction(
+      ListBuilder<Code> statements, ContractFunction function, int index) {
+    final functionExpr =
+        self.property('abi').property('functions').index(literalNum(index));
 
     statements.add(declareFinal('function').assign(functionExpr).statement);
 
@@ -461,7 +490,9 @@ extension on Expression {
               Parameter((b) => b.name = 'e'),
             )
             ..body = Block(
-              (b) => b..addExpression(refer('e').castTo(inner, knownToBeList: true).returned),
+              (b) => b
+                ..addExpression(
+                    refer('e').castTo(inner, knownToBeList: true).returned),
             ),
         );
         result = result
@@ -485,8 +516,6 @@ extension on Expression {
 
 extension on String {
   String omitUnderscore() {
-    return startsWith('_')
-        ? substring(1)
-        : this;
+    return startsWith('_') ? substring(1) : this;
   }
 }

@@ -1,6 +1,6 @@
 # Description
 
-Helper package for the ([xclud/web3dart](https://github.com/xclud/web3dart)) library responsible for generating dart classes from abi contracts
+Helper package for the ([cubealgos/web3dart_async](https://github.com/cubealgos/web3dart_async)) library responsible for generating dart classes from abi contracts
 This project is part of this repository [simolus3/web3dart](https://github.com/simolus3/web3dart).
 
 
@@ -17,7 +17,7 @@ dart pub add build_runner --dev
 ```
     
 ```shell
-dart pub add web3dart_builders --dev
+dart pub add web3dart_async_builders --dev
 ```
 
 # Usage

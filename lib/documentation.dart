@@ -1,7 +1,6 @@
 import 'dart:convert';
 
-import 'package:web3dart/web3dart.dart';
-
+import 'package:web3dart_async/web3dart_async.dart';
 
 /// Parses solidity documentation comments from the generated compiler
 /// output.
